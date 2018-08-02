@@ -2,10 +2,12 @@ package main
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
@@ -32,14 +34,22 @@ func applyDeploymentAppsV1(deployment *appsv1.Deployment, deploymentSet v1.Deplo
 			return err
 		}
 
-		deployment.Labels["date"] = time.Now().String()
 		_, err = deploymentSet.Update(deployment)
 		if err != nil {
 			log.Println("Error when updating deployment")
 			return err
 		}
-		log.Println("Deployment " + deploymentName + " updated")
 
+		// enforce update in case of image tag is not changed
+		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+		dateLabel := []byte(`{"spec":{"template":{"metadata":{"labels":{"date":"` + timestamp + `"}}}}}`)
+		_, err = deploymentSet.Patch(deploymentName, types.StrategicMergePatchType, dateLabel)
+		if err != nil {
+			log.Println("Error set timestamp label")
+			return err
+		}
+
+		log.Println("Deployment " + deploymentName + " updated")
 		return err
 	} else {
 		_, err := deploymentSet.Create(deployment)
