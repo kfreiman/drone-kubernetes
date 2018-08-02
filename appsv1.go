@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +32,7 @@ func applyDeploymentAppsV1(deployment *appsv1.Deployment, deploymentSet v1.Deplo
 			return err
 		}
 
+		deployment.Labels["date"] = time.Now().String()
 		_, err = deploymentSet.Update(deployment)
 		if err != nil {
 			log.Println("Error when updating deployment")
